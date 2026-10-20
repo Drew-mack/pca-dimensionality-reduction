@@ -264,7 +264,7 @@ def main(args):
         print("Method is PCA")
         mu, W = PCA(np.copy(X), out_dim) # return mean and the projection matrix (numpy array)
         if args.data != "MNIST":
-            print("The mean vector is: ", mu)that 
+            print("The mean vector is: ", mu) 
             print("The projection matrix is: ", W)
 
         ### Your job 2 starts here ###
@@ -276,7 +276,7 @@ def main(args):
         3. Useful tool: check the "np.matmul" function and the builtin "transpose()" function of a numpy array 
         4. Hint: Just one line of code
         """
-        new_X = ...
+        new_X = np.matmul(W.transpose(), X - mu)
 
         ### Your job 2 ends here ###
 
