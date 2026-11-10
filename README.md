@@ -14,7 +14,7 @@ computes the mean, covariance, and projection using NumPy.
 - `feature_normalization.py` and `numpy_example.py` are standalone instructional
   examples. `collaboration.txt` records the collaboration statement.
 
-## Running
+## How to run
 
 Use Python with NumPy and Matplotlib installed, and run commands from the
 repository root. For example:
