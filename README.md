@@ -47,6 +47,12 @@ opens a window with sliders for the image and the number of components (up to
 100). The first run may take a moment while PCA is computed. It needs an
 interactive Matplotlib backend to show the window.
 
+The gallery displays the mean image and the first five principal components.
+Red and blue represent opposite pixel changes relative to the mean; each
+component has its own color scale. A component's sign is arbitrary, and its
+image is a pattern used in reconstruction, not a digit on its own. The gallery
+is fixed, while the reconstruction uses the number of components selected.
+
 Variance retained describes the fraction of total variation in the fitted set
 captured by the selected components. Mean squared error (MSE) compares the
 selected original image with its reconstruction on the 0–255 pixel scale;
