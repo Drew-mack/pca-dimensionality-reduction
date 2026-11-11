@@ -56,6 +56,7 @@ def create_demo(X, max_components=100):
     mean_ax.imshow(mu[:, 0].reshape(28, 28), cmap="gray", vmin=0, vmax=255)
     mean_ax.set_title("Mean", color=muted, fontsize=10, pad=6)
     mean_ax.axis("off")
+    weight_labels = []
     for i in range(gallery_size):
         ax = fig.add_axes([gallery_left + (i + 1) * (gallery_width + gallery_gap),
                            0.255, gallery_width, 0.105])
@@ -64,8 +65,13 @@ def create_demo(X, max_components=100):
         ax.imshow(component, cmap="RdBu_r", vmin=-limit, vmax=limit)
         ax.set_title(f"PC {i + 1}", color=muted, fontsize=10, pad=6)
         ax.axis("off")
-    fig.text(0.06, 0.235,
-             "Red and blue show opposite pixel changes; each component uses its own color scale.",
+        weight_labels.append(fig.text(
+            gallery_left + (i + 1) * (gallery_width + gallery_gap) + gallery_width / 2,
+            0.245, "", ha="center", va="top", fontsize=9,
+        ))
+    fig.text(0.06, 0.195,
+             "Weights are for the selected image. Red and blue show opposite pixel changes; "
+             "each PC has its own color scale.",
              color=muted, fontsize=9)
 
     component_ax = fig.add_axes([0.16, 0.14, 0.68, 0.008], facecolor=background)
@@ -76,7 +82,7 @@ def create_demo(X, max_components=100):
         "initcolor": "none",
         "handle_style": {"facecolor": accent, "edgecolor": background, "size": 13},
     }
-    component_slider = Slider(component_ax, "Components", 1, max_components,
+    component_slider = Slider(component_ax, "Components", 0, max_components,
                               valinit=min(10, max_components), valstep=1, valfmt="%d",
                               **slider_style)
     image_slider = Slider(image_ax, "Image", 1, X.shape[1], valinit=1, valstep=1, valfmt="%d",
@@ -104,7 +110,12 @@ def create_demo(X, max_components=100):
         mse = np.mean((X[:, index] - reconstruction) ** 2)
         original_image.set_data(X[:, index].reshape(28, 28))
         reconstructed_image.set_data(reconstruction.reshape(28, 28))
-        metrics.set_text(f"Variance retained: {retained[count - 1]:.1%}    |    "
+        variance = retained[count - 1] if count else 0.0
+        for i, label in enumerate(weight_labels):
+            included = i < count
+            label.set_text(f"{scores[i, index]:+.1f}" + ("" if included else "\nnot used"))
+            label.set_color(accent if included else muted)
+        metrics.set_text(f"Variance retained: {variance:.1%}    |    "
                          f"Image reconstruction MSE: {mse:.1f}")
         fig.canvas.draw_idle()
 
