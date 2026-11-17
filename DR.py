@@ -37,7 +37,7 @@ def data_MNIST(args):
     X = np.loadtxt(osp.join(args.path, "mnist_test.csv"), delimiter=",")
     X = X.astype('float64')
     Y = X[:, 0]
-    X = X[Y == 3, 1:].transpose()
+    X = X[Y == getattr(args, 'digit', 3), 1:].transpose()
     return X, np.ones(X.shape[1])
 
 

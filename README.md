@@ -40,14 +40,18 @@ small dataset; it is not a comprehensive test suite.
 
 ```sh
 python pca_image_demo.py
+python pca_image_demo.py --digit 8 --holdout 0.2
 ```
 
-The app fits PCA to the digit 3 images in the bundled MNIST test dataset, then
+By default, the app fits PCA to the digit 3 images in the bundled MNIST test dataset, then
 opens a window with sliders for the image and the number of components (0 to
 100). At zero components the reconstruction is the mean image; adding
 components gradually brings it closer to the selected digit. The first run may
 take a moment while PCA is computed. It needs an
-interactive Matplotlib backend to show the window.
+interactive Matplotlib backend to show the window. Use `--digit` to choose a
+digit from 0 to 9. The optional `--holdout` fraction fits PCA on the remaining
+images and displays only held-out images; the split uses a fixed random seed.
+The Reset button restores both sliders to their initial positions.
 
 The gallery displays the mean image and the first five principal components.
 Red and blue represent opposite pixel changes relative to the mean; each

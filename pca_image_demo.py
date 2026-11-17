@@ -1,4 +1,4 @@
-"""Explore PCA reconstructions of handwritten 3s from the bundled MNIST data."""
+"""Explore PCA reconstructions of handwritten digits from the bundled MNIST data."""
 
 import argparse
 from pathlib import Path
@@ -7,23 +7,25 @@ from types import SimpleNamespace
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from matplotlib.text import Text
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Button, Slider
 import numpy as np
 
 from DR import PCA, data_MNIST
 
 
-def create_demo(X, max_components=100):
+def create_demo(X, max_components=100, fit_X=None, digit=3, held_out=False):
     """Create the figure and sliders for a matrix of flattened MNIST images."""
-    max_components = min(max_components, X.shape[0], X.shape[1])
-    print(f"Fitting PCA to {X.shape[1]} images; this may take a moment...")
-    mu, components = PCA(X, max_components)
-    centered = X - mu
-    scores = components.T @ centered
+    fit_X = X if fit_X is None else fit_X
+    max_components = min(max_components, fit_X.shape[0], fit_X.shape[1])
+    print(f"Fitting PCA to {fit_X.shape[1]} images; this may take a moment...")
+    mu, components = PCA(fit_X, max_components)
+    centered = fit_X - mu
+    scores = components.T @ (X - mu)
+    fit_scores = components.T @ centered
     total_variance = np.sum(centered ** 2)
     if total_variance == 0:
         raise ValueError("PCA needs images with nonzero variation.")
-    retained = np.cumsum(np.sum(scores ** 2, axis=1)) / total_variance
+    retained = np.cumsum(np.sum(fit_scores ** 2, axis=1)) / total_variance
 
     background = "#101827"
     foreground = "#edf3fa"
@@ -31,18 +33,18 @@ def create_demo(X, max_components=100):
     accent = "#50d4bc"
     fig = plt.figure(figsize=(12, 9), facecolor=background)
     fig.text(0.06, 0.95, "PCA EXPLORER", color=accent, fontsize=10)
-    fig.text(0.06, 0.91, "How much makes a 3?", color=foreground, fontsize=25)
+    fig.text(0.06, 0.91, f"How much makes a {digit}?", color=foreground, fontsize=25)
 
     original_ax = fig.add_axes([0.14, 0.54, 0.29, 0.30])
     reconstructed_ax = fig.add_axes([0.57, 0.54, 0.29, 0.30])
-    original_ax.set_title("Original", color=muted, fontsize=11, pad=10)
+    original_ax.set_title("Original (held out)" if held_out else "Original", color=muted, fontsize=11, pad=10)
     reconstructed_ax.set_title("Reconstruction", color=muted, fontsize=11, pad=10)
     for ax in (original_ax, reconstructed_ax):
         ax.axis("off")
     original_image = original_ax.imshow(X[:, 0].reshape(28, 28), cmap="gray", vmin=0, vmax=255)
     reconstructed_image = reconstructed_ax.imshow(np.zeros((28, 28)), cmap="gray", vmin=0, vmax=255)
     metrics = fig.text(0.5, 0.50, "", ha="center", color=foreground, fontsize=11)
-    fig.text(0.5, 0.475, "Variance is measured across all 3s used to fit PCA.",
+    fig.text(0.5, 0.475, "Variance is measured across the images used to fit PCA.",
              ha="center", color=muted, fontsize=9)
 
     fig.text(0.06, 0.43, "The building blocks", color=foreground, fontsize=14)
@@ -87,6 +89,12 @@ def create_demo(X, max_components=100):
                               **slider_style)
     image_slider = Slider(image_ax, "Image", 1, X.shape[1], valinit=1, valstep=1, valfmt="%d",
                           **slider_style)
+    reset_ax = fig.add_axes([0.87, 0.055, 0.09, 0.035])
+    reset_button = Button(reset_ax, "Reset", color="#344356", hovercolor="#506580")
+    reset_button.label.set_color(foreground)
+    reset_button.on_clicked(lambda _: (component_slider.reset(), image_slider.reset()))
+    # Matplotlib widgets must remain referenced for callbacks to stay active.
+    fig._reset_button = reset_button
     for slider in (component_slider, image_slider):
         slider.label.set_color(foreground)
         slider.label.set_position((0, 3.3))
@@ -129,10 +137,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--path", type=Path, default=Path(__file__).resolve().parent / "data",
                         help="Directory containing mnist_test.csv")
+    parser.add_argument("--digit", type=int, choices=range(10), default=3,
+                        help="Digit to explore (default: 3)")
+    parser.add_argument("--holdout", type=float, default=0,
+                        help="Fraction of images to hold out for display (e.g. 0.2)")
     args = parser.parse_args()
-    X, _ = data_MNIST(SimpleNamespace(path=args.path))
+    if not 0 <= args.holdout < 1:
+        parser.error("--holdout must be at least 0 and less than 1")
+    X, _ = data_MNIST(SimpleNamespace(path=args.path, digit=args.digit))
+    if X.shape[1] < 2:
+        parser.error("The selected digit needs at least two images")
+    fit_X = X
+    if args.holdout:
+        count = max(1, int(X.shape[1] * args.holdout))
+        if X.shape[1] - count < 2:
+            parser.error("--holdout leaves fewer than two images for fitting")
+        indices = np.random.default_rng(0).permutation(X.shape[1])
+        fit_X, X = X[:, indices[count:]], X[:, indices[:count]]
     # Keep references to the sliders alive while the interactive window is open.
-    fig, component_slider, image_slider = create_demo(X)
+    fig, component_slider, image_slider = create_demo(
+        X, fit_X=fit_X, digit=args.digit, held_out=bool(args.holdout))
     plt.show()
 
 
