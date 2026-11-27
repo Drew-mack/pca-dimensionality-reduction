@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-## Data loader and data generation functions
+## load or generate data
 def data_loader(args):
     """
     Output:
@@ -71,7 +71,7 @@ def save_pca_results(args, mu, W, fig=None):
         fig.savefig(plots_dir / f"{suffix}.png", format="png")
 
 
-## Displaying the results
+## display the results
 def display_DR(args, new_X, X, phi, mu, W):
     if args.data == "Swiss_Roll" or args.data == "toy_data":
         if new_X.shape[0] != 1:
@@ -116,7 +116,7 @@ def display_DR(args, new_X, X, phi, mu, W):
             save_pca_results(args, mu, W)
 
 
-## auto_checker
+## pca sanity check
 def auto_check(mu, W):
     print("In auto checker!")
     if mu.ndim != 2:
@@ -143,7 +143,7 @@ def auto_check(mu, W):
                 print("Incorrect W")
 
 
-## Dimensionality reduction functions
+## dimensionality reduction
 def LE(X, out_dim, num_neighbor=5):
     """
     Input:
@@ -155,22 +155,22 @@ def LE(X, out_dim, num_neighbor=5):
     """
 
     X = np.copy(X)
-    N = X.shape[1]  # number of data instances of X
+    N = X.shape[1]  # number of samples
 
-    # Build the pairwise distance matrix
+    # compute distances between all pairs of samples
     Dis = np.matmul(X.transpose(), X)
     Dis = np.matmul(Dis.diagonal().reshape(-1, 1), np.ones((1, N))) + \
           np.matmul(np.ones((N, 1)), Dis.diagonal().reshape(1, -1)) - \
           2 * Dis
     Dis_order = np.argsort(Dis, 1)
 
-    # Build the similarity matrix. We set the num_neighbor neighbors of each data instance to 1; others, 0.
+    # connect each sample to its nearest neighbors
     Sim = np.zeros((N, N))
     for n in range(N):
         Sim[n, Dis_order[n][1:1+num_neighbor]] = 1
     Sim = np.maximum(Sim, Sim.transpose())
     DD = np.diag(np.sum(Sim, 1))
-    L = DD - Sim # Laplacian matrix
+    L = DD - Sim # graph laplacian
 
     V, W = np.linalg.eig(np.matmul(np.linalg.inv(DD), L))
     V = V.real
@@ -197,23 +197,23 @@ def PCA(X, out_dim):
     """
 
     X = np.copy(X)
-    N = X.shape[1] # number of data instances
+    N = X.shape[1] # number of samples
 
     mu = np.mean(X, axis=1).reshape(-1, 1)
     Sigma = np.matmul(X - mu, (X - mu).transpose()) / N
 
-    # eigh returns unit-length eigenvectors in columns.
+    # eigh returns real, unit-length eigenvectors as columns
     V, W = np.linalg.eigh(Sigma)
-    V = V.real  # the output may be complex value: do .real to keep the real part
-    W = W.real  # the output may be complex value: do .real to keep the real part
-    V_order = np.argsort(V)[::-1]  # sort the eigenvalues in the descending order
+    V = V.real
+    W = W.real
+    V_order = np.argsort(V)[::-1]  # largest eigenvalues first
     V = V[V_order]
-    W = W[:, V_order] # sort in the descending order
-    W = W[:, :out_dim] # output the top out_dim eigenvectors
+    W = W[:, V_order] # put the eigenvectors in the same order
+    W = W[:, :out_dim] # keep the first out_dim directions
     return mu, W
 
 
-## Main function
+## main
 def main(args):
 
     if args.auto_check:
@@ -223,23 +223,22 @@ def main(args):
         args.display = False
         args.save = False
 
-    ## Loading data
-    X, phi = data_loader(args) # X: the D-by-N data matrix (numpy array); phi: metadata of X (you can ignore it)
+    ## load the data
+    X, phi = data_loader(args) # X holds the samples by column and phi holds their colors or labels
 
-    ## Setup
-    out_dim = int(args.out_dim) # output dimensionality
+    ## set the output dimension
+    out_dim = int(args.out_dim)
     print("Data size: ", X.shape)
 
-    # Running DR
-    # Running PCA
+    # reduce the data
     if args.method == "PCA":
         print("Method is PCA")
-        mu, W = PCA(np.copy(X), out_dim) # return mean and the projection matrix (numpy array)
+        mu, W = PCA(np.copy(X), out_dim) # get the mean and principal directions
         if args.data != "MNIST":
             print("The mean vector is: ", mu) 
             print("The projection matrix is: ", W)
 
-        # Project centered data onto the principal directions.
+        # center the data and project it onto the principal directions
         new_X = np.matmul(W.transpose(), X - mu)
 
     elif args.method == "LE":
@@ -251,7 +250,7 @@ def main(args):
     else:
         print("Wrong method!")
 
-    # Display the results
+    # display the results
     if args.display:
         display_DR(args, new_X, X, phi, mu, W)
 

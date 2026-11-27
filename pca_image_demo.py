@@ -93,7 +93,7 @@ def create_demo(X, max_components=100, fit_X=None, digit=3, held_out=False):
     reset_button = Button(reset_ax, "Reset", color="#344356", hovercolor="#506580")
     reset_button.label.set_color(foreground)
     reset_button.on_clicked(lambda _: (component_slider.reset(), image_slider.reset()))
-    # Matplotlib widgets must remain referenced for callbacks to stay active.
+    # keep the reset button alive so its callback still runs
     fig._reset_button = reset_button
     for slider in (component_slider, image_slider):
         slider.label.set_color(foreground)
@@ -105,7 +105,7 @@ def create_demo(X, max_components=100, fit_X=None, digit=3, held_out=False):
         slider.valtext.set_horizontalalignment("right")
         slider.valtext.set_fontsize(10)
 
-    # Prefer the system's Avenir Next, with a bundled Matplotlib fallback.
+    # use avenir next when available and fall back to the bundled font
     available_fonts = {font.name for font in font_manager.fontManager.ttflist}
     font_family = "Avenir Next" if "Avenir Next" in available_fonts else "DejaVu Sans"
     for text in fig.findobj(match=Text):
@@ -154,7 +154,7 @@ def main():
             parser.error("--holdout leaves fewer than two images for fitting")
         indices = np.random.default_rng(0).permutation(X.shape[1])
         fit_X, X = X[:, indices[count:]], X[:, indices[:count]]
-    # Keep references to the sliders alive while the interactive window is open.
+    # keep the sliders alive while the window is open
     fig, component_slider, image_slider = create_demo(
         X, fit_X=fit_X, digit=args.digit, held_out=bool(args.holdout))
     plt.show()
